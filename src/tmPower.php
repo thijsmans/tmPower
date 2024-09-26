@@ -42,6 +42,9 @@
                 $this->ecoflow_ps_serial = $args['powerstream']['serial'];
             }
 
+            if( !empty($args['optimizer']) )
+                $this->setupOptimizer($args['optimizer']);
+
             if( !empty($args['p1']) )
                 $this->setupP1($args['p1']);
 
@@ -52,7 +55,7 @@
 
                 $this->addTask('__cache', function ($tmPower){
                     $tmPower->updateCache();
-                }, intval($args['cache']['interval']) ?? 15 );
+                }, intval($args['cache']['interval'] ?? 15 ) );
             }
 
         }
@@ -162,6 +165,24 @@
 
                 $this->ecoflow = new EcoFlowAPI($ps['access_key'], $ps['secret_key']);
                 $this->ecoflow_ps_serial = $ps['serial'];
+            }
+        }
+
+        /**
+         * Setup battery optimizer.
+         *
+         * @param array $battery Battery configuration.
+         * @throws \Exception if required parameters are missing.
+         */
+        private function setupOptimizer($battery) 
+        {
+            if (!empty($battery)) 
+            {
+                $capacityKWh = $battery['capacity_kwh'] ?? 2.5;
+                $dischargeRateW = $battery['discharge_rate_w'] ?? 633;
+                $baselineW = $battery['baseline_w'] ?? 200;
+
+                $this->optimizer = new BatteryOptimizer($capacityKWh, $dischargeRateW, $baselineW);
             }
         }
 
