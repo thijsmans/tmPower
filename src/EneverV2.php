@@ -36,12 +36,22 @@
             }
 
             // URLs to fetch data from (today and tomorrow)
-            $urls = [/*$this->apiUrlToday, */$this->apiUrlTomorrow];
+            $urls = [ $this->apiUrlToday, $this->apiUrlTomorrow];
             $prices = []; // Initialize prices array
 
             // Loop through each URL to fetch and process data
             foreach ($urls as $url) {
-                $response = @file_get_contents($url . $this->token); // Suppress errors and fetch API data
+
+                $cache_filename = './cache-enever-' . md5($url).'.json';
+
+                if( file_exists($cache_filename) && filemtime($cache_filename) > strftime("-12 hours") )
+                {
+                    $response = file_get_contents($cache_filename);
+                } else
+                {
+                    $response = @file_get_contents($url . $this->token); // Suppress errors and fetch API data
+                    file_put_contents($cache_filename, $response);
+                }
 
                 // Check if fetching data was successful
                 if ($response === false) {
