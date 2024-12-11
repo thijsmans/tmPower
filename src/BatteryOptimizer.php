@@ -46,15 +46,25 @@
         }
 
         /**
-         * Get the cheapest hours to charge the battery, considering time restrictions and charging efficiency
+         * Get the cheapest hours to charge the battery, considering optional time restrictions and charging efficiency.
          *
-         * @return array - Returns an array of charging hours with rates
+         * @param array|null $chargingWindow - Optional argument to specify the allowed charging hours.
+         *                                     Format: ['start' => 'HH:MM', 'end' => 'HH:MM']
+         *                                     If null, charging is allowed at any time of day.
+         *
+         * @return array - Returns an array of charging hours with rates.
          */
-        public function getChargingHours() 
+        public function getChargingHours($chargingWindow = ['start' => '08:00', 'end' => '18:00']) 
         {
             $chargeHours = [];
             $remainingCapacity = $this->batteryCapacity / $this->chargingEfficiency; // Adjust for charging loss
             $currentTime = time(); // Get the current timestamp
+
+            // If a charging window is provided, parse the start and end hours
+            if ($chargingWindow !== null) {
+                $startHour = (int)explode(':', $chargingWindow['start'])[0];
+                $endHour = (int)explode(':', $chargingWindow['end'])[0];
+            }
 
             // Sort rates from lowest to highest to prioritize cheaper hours
             asort($this->rates);
@@ -64,8 +74,13 @@
                 $time = strtotime($hour);
                 $hourOfDay = (int)date('H', $time); // Get the hour of the day
 
-                // Skip hours that are outside the allowed charging window (08:00 to 18:00) or in the past
-                if ($hourOfDay < 8 || $hourOfDay >= 18 || $time <= $currentTime) {
+                // If a charging window is provided, skip hours outside the allowed window
+                if ($chargingWindow !== null && ($hourOfDay < $startHour || $hourOfDay >= $endHour)) {
+                    continue;
+                }
+
+                // Skip hours in the past
+                if ($time <= $currentTime) {
                     continue;
                 }
 
@@ -77,7 +92,7 @@
                 // Add the hour to the charge list
                 $chargeHours[$hour] = $rate;
 
-                // Decrease remaining capacity by the discharge rate (converted to account for charging efficiency)
+                // Decrease remaining capacity by the discharge rate (adjusted for charging efficiency)
                 $remainingCapacity -= $this->dischargeRate;
             }
 
@@ -97,7 +112,7 @@
             $currentTime = time(); // Get the current timestamp
 
             // Get the last charge hour to ensure discharging happens after charging
-            $chargingHours = $this->getChargingHours();
+            $chargingHours = $this->getChargingHours(null);
             $lastChargeHour = !empty($chargingHours) ? max(array_keys($chargingHours)) : null;
 
             // Sort rates from highest to lowest to prioritize discharging during expensive hours
@@ -136,7 +151,7 @@
         public function getProfile() 
         {
             // Retrieve the optimized charging and discharging hours
-            $chargingHours = $this->getChargingHours();
+            $chargingHours = $this->getChargingHours(null);
             $dischargingHours = $this->getDischargingHours();
 
             // Calculate the total cost of charging and total savings from discharging
