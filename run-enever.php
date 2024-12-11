@@ -18,6 +18,10 @@
             'enabled'   => true,
         ],
 
+        'cache' => [
+            'enabled'   => true,
+        ],
+
     ]);
 
     // Get Enever data (data for tomorrow available @ 1500 hours)
@@ -55,7 +59,7 @@
         if ($profile['net_savings'] > 0.10) 
         {
             // Clear the cache
-            $tmPower->writeCache(['profile' => null]);
+            //$tmPower->writeCache(['profile' => null]);
 
             // Get the date of the first charging hour
             $firstChargingHour = key($profile['charging_hours']);
